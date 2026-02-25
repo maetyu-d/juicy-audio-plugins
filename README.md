@@ -1,16 +1,27 @@
 # JuicySuite (JUCE AU/VST3)
 
-Plugin suite derived from the "juiciness" report, implemented as four JUCE plugins:
+A work-in-progress (WIP) suite of plugins (AU/VST3), created using the JUCE open-source cross-platform C++ application framework, and aimed at emphasising or maximising sonic "juiciness", as described in Hicks et al. (2024). The plugins are as follows:
 
-- `JuicyInfer`: pass-through analyzer that infers a 0-100 juiciness score.
-- `JuicyPunch`: transient/sustain shaper for punch and density.
-- `JuicySaturator`: soft saturation tuned for harmonic richness.
-- `JuicyWidth`: stereo widening with Haas delay and mono-safety behavior.
-- `JuicyCohere`: spectral target matching + context-fit management with learn mode.
-- `JuicyTexture`: synesthetic texture engine with material modes and dynamic tails.
-- `JuicyMotion`: micro-variation and repetition-aware contrast management.
+Quite stable/usable:
 
-Each plugin exposes a `Juiciness Score` parameter so you can monitor inferred juiciness while processing.
+Juicy Punch - an impact-shaper that pushes transient energy, perceived hit force, and front-edge density so that sounds feel more immediate and physically present without relying only on raw level increases.
+
+Juicy Saturator - adds harmonic richness and controlled nonlinearities relating to sonic colour, and is designed to increase perceived weight and texture while preserving intelligibility through a mixture of drive shaping and output balancing.
+
+Juicy Texture - uses physically inspired resonance models (gel, metal, wood, plastic, flesh-like) to add body, surface character, and impact-related feel to the source sound, with controllable damping and weight.
+
+Juicy Width - widens the (perceived) stereo image and envelopment while monitoring mono compatibility to ensure that widened sounds are still cohesive in collapsed playback.
+
+More experimental/may not yet be fully usable and/or useful:
+
+Juicy Motion - introduces controlled variation over repeated events, adding evolving tone/transient/tail motion while managing repetition and contrastto avoid fatigue so the effect stays lively instead of static or overused.
+
+Juicy Infer - an analysis hub that estimates juiciness with pre/post scoring and dimension tracking (based on the criteria in XXXX) so you can see whether processing is helping or creating fatigue risk.
+
+Juicy Cohere - a context-fit processor that tries to align spectral balance and tail behaviour toward a learned mix profile so that “juiced” sounds still remain coherent and belong in the same sonic world as the rest of the production.
+
+
+Each plugin exposes a `Juiciness Score` parameter to enable inferred juiciness to be monitored.
 `JuicyInfer` now includes triangle analysis outputs (`Emphasis`, `Coherence`, `Synesthesia`) plus `Fatigue Risk` and `Repetition Density`.
 Each plugin now also uses a custom UI meter panel showing live overall score and feature bars (Punch, Richness, Clarity, Width, Mono Safety).
 
