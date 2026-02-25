@@ -12,7 +12,7 @@ Quite stable/usable:
 More experimental/may not yet be fully usable and/or useful:
 
 * Juicy Motion - introduces controlled variation over repeated events, adding evolving tone/transient/tail motion while managing repetition and contrastto avoid fatigue so the effect stays lively instead of static or overused.
-* Juicy Infer - an analysis hub that estimates juiciness with pre/post scoring and dimension tracking (based on the criteria in XXXX) so you can see whether processing is helping or creating fatigue risk.
+* Juicy Infer - an analysis hub that estimates juiciness with pre/post scoring and dimension tracking (based on the criteria in Hicks et al., 2024) so you can see whether processing is helping or creating fatigue risk.
 * Juicy Cohere - a context-fit processor that tries to align spectral balance and tail behaviour toward a learned mix profile so that “juiced” sounds still remain coherent and belong in the same sonic world as the rest of the production.
 
 
