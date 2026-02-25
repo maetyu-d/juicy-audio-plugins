@@ -1,4 +1,4 @@
-# JuicySuite (JUCE AU/VST3)
+# JuicySuite
 
 A work-in-progress (WIP) suite of plugins (AU/VST3), created using the JUCE open-source cross-platform C++ application framework, and aimed at emphasising or maximising sonic "juiciness", as described in Hicks et al. (2024). The plugins are as follows:
 
