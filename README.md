@@ -4,7 +4,7 @@ A work-in-progress (WIP) suite of plugins (AU/VST3), created using the JUCE open
 
 Quite stable/usable:
 
-Juicy Punch - an impact-shaper that pushes transient energy, perceived hit force, and front-edge density so that sounds feel more immediate and physically present without relying only on raw level increases.
+* Juicy Punch - an impact-shaper that pushes transient energy, perceived hit force, and front-edge density so that sounds feel more immediate and physically present without relying only on raw level increases.
 
 Juicy Saturator - adds harmonic richness and controlled nonlinearities relating to sonic colour, and is designed to increase perceived weight and texture while preserving intelligibility through a mixture of drive shaping and output balancing.
 
