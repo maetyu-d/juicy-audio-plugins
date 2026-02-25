@@ -1,5 +1,27 @@
 #include "PluginProcessor.h"
 #include "../../shared/JuicyPluginEditor.h"
+#include <array>
+
+namespace
+{
+struct WidthPreset
+{
+    const char* name;
+    float width;
+    float haasMs;
+    float monoSafe;
+    float mix;
+    float output;
+};
+
+constexpr std::array<WidthPreset, 5> widthPresets { {
+    { "Prism Arc", 0.45f, 12.0f, 0.7f, 1.0f, 0.0f },
+    { "Outer Halo", 0.9f, 22.0f, 0.35f, 1.0f, -1.5f },
+    { "Studio Spine", 0.35f, 8.0f, 0.95f, 0.8f, 0.0f },
+    { "Ribbon Drift", 0.7f, 16.0f, 0.55f, 0.65f, -0.5f },
+    { "Monolith Wide", 1.0f, 30.0f, 0.2f, 1.0f, -3.0f }
+} };
+}
 
 JuicyWidthAudioProcessor::JuicyWidthAudioProcessor()
     : AudioProcessor(BusesProperties().withInput("Input", juce::AudioChannelSet::stereo(), true)
@@ -7,6 +29,7 @@ JuicyWidthAudioProcessor::JuicyWidthAudioProcessor()
       parameters(*this, nullptr, "PARAMS", createParameterLayout())
 {
     juicinessParameter = parameters.getParameter("juiciness");
+    setCurrentProgram(0);
 }
 
 void JuicyWidthAudioProcessor::prepareToPlay(double sampleRate, int samplesPerBlock)
@@ -48,9 +71,13 @@ void JuicyWidthAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, ju
     for (int i = totalInputChannels; i < totalOutputChannels; ++i)
         buffer.clear(i, 0, buffer.getNumSamples());
 
+    const auto preMetrics = analyzer.analyze(buffer);
+
     if (totalInputChannels < 2)
     {
         auto metrics = analyzer.analyze(buffer);
+        latestPreScore.store(preMetrics.score, std::memory_order_relaxed);
+        latestPostScore.store(metrics.score, std::memory_order_relaxed);
         latestScore.store(metrics.score, std::memory_order_relaxed);
         latestPunch.store(metrics.punch, std::memory_order_relaxed);
         latestRichness.store(metrics.richness, std::memory_order_relaxed);
@@ -111,6 +138,8 @@ void JuicyWidthAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, ju
     }
 
     auto metrics = analyzer.analyze(buffer);
+    latestPreScore.store(preMetrics.score, std::memory_order_relaxed);
+    latestPostScore.store(metrics.score, std::memory_order_relaxed);
     latestScore.store(metrics.score, std::memory_order_relaxed);
     latestPunch.store(metrics.punch, std::memory_order_relaxed);
     latestRichness.store(metrics.richness, std::memory_order_relaxed);
@@ -141,9 +170,53 @@ void JuicyWidthAudioProcessor::setStateInformation(const void* data, int sizeInB
         parameters.replaceState(juce::ValueTree::fromXml(*xmlState));
 }
 
+int JuicyWidthAudioProcessor::getNumPrograms()
+{
+    return static_cast<int>(widthPresets.size());
+}
+
+int JuicyWidthAudioProcessor::getCurrentProgram()
+{
+    return currentProgram;
+}
+
+void JuicyWidthAudioProcessor::setCurrentProgram(int index)
+{
+    currentProgram = juce::jlimit(0, getNumPrograms() - 1, index);
+    const auto& p = widthPresets[static_cast<size_t>(currentProgram)];
+
+    auto setParam = [this](const char* id, float value)
+    {
+        if (auto* param = parameters.getParameter(id))
+        {
+            const auto range = param->getNormalisableRange();
+            param->setValueNotifyingHost(range.convertTo0to1(value));
+        }
+    };
+
+    setParam("width", p.width);
+    setParam("haasMs", p.haasMs);
+    setParam("monoSafe", p.monoSafe);
+    setParam("mix", p.mix);
+    setParam("output", p.output);
+}
+
+const juce::String JuicyWidthAudioProcessor::getProgramName(int index)
+{
+    const int safe = juce::jlimit(0, getNumPrograms() - 1, index);
+    return widthPresets[static_cast<size_t>(safe)].name;
+}
+
+void JuicyWidthAudioProcessor::changeProgramName(int index, const juce::String& newName)
+{
+    juce::ignoreUnused(index, newName);
+}
+
 JuicinessMetrics JuicyWidthAudioProcessor::getLatestMetrics() const noexcept
 {
     JuicinessMetrics m;
+    m.preScore = latestPreScore.load(std::memory_order_relaxed);
+    m.postScore = latestPostScore.load(std::memory_order_relaxed);
     m.score = latestScore.load(std::memory_order_relaxed);
     m.punch = latestPunch.load(std::memory_order_relaxed);
     m.richness = latestRichness.load(std::memory_order_relaxed);

@@ -16,6 +16,9 @@ void JuicinessAnalyzer::reset()
     longEnv = 0.0f;
     lowBandState = 0.0f;
     highBandState = 0.0f;
+    repetitionEma = 0.0f;
+    fatigueEma = 0.0f;
+    onsetCooldown = 0;
 }
 
 float JuicinessAnalyzer::updateEnvelope(float input, float attackCoeff, float releaseCoeff, float& env) const noexcept
@@ -38,6 +41,7 @@ JuicinessMetrics JuicinessAnalyzer::analyze(const juce::AudioBuffer<float>& buff
     const float releaseLong = std::exp(-1.0f / static_cast<float>(sr * 0.300));
 
     float transientAccum = 0.0f;
+    int onsetCount = 0;
     float rmsAccum = 0.0f;
     float peak = 0.0f;
     float lowAccum = 0.0f;
@@ -60,7 +64,15 @@ JuicinessMetrics JuicinessAnalyzer::analyze(const juce::AudioBuffer<float>& buff
         updateEnvelope(absMono, attackShort, releaseShort, shortEnv);
         updateEnvelope(absMono, attackLong, releaseLong, longEnv);
 
-        transientAccum += juce::jmax(0.0f, shortEnv - longEnv);
+        const float transient = juce::jmax(0.0f, shortEnv - longEnv);
+        transientAccum += transient;
+        if (onsetCooldown > 0)
+            --onsetCooldown;
+        if (transient > 0.045f && onsetCooldown <= 0)
+        {
+            ++onsetCount;
+            onsetCooldown = static_cast<int>(sr * 0.035);
+        }
         rmsAccum += mono * mono;
         peak = juce::jmax(peak, std::abs(mono));
 
@@ -109,11 +121,31 @@ JuicinessMetrics JuicinessAnalyzer::analyze(const juce::AudioBuffer<float>& buff
     const float width = juce::jlimit(0.0f, 1.0f, widthRatio * 2.0f);
     const float monoSafety = juce::jlimit(0.0f, 1.0f, 0.5f * (corr + 1.0f));
 
+    const float blockSeconds = static_cast<float>(numSamples) / static_cast<float>(sr);
+    const float onsetRate = blockSeconds > 0.0f ? static_cast<float>(onsetCount) / blockSeconds : 0.0f;
+    repetitionEma += (onsetRate - repetitionEma) * 0.08f;
+    const float repetitionDensity = juce::jlimit(0.0f, 1.0f, repetitionEma / 12.0f);
+
+    const float emphasis = juce::jlimit(0.0f, 1.0f, 0.62f * punch + 0.38f * juce::jlimit(0.0f, 1.0f, transientAccum * invN * 8.5f));
+    const float coherence = juce::jlimit(0.0f, 1.0f, 0.50f * clarity + 0.30f * monoSafety + 0.20f * (1.0f - std::abs(width - 0.45f)));
+    const float synesthesia = juce::jlimit(0.0f, 1.0f, 0.45f * richness + 0.30f * juce::jlimit(0.0f, 1.0f, lowHighRatio / 3.5f) + 0.25f * juce::jlimit(0.0f, 1.0f, transientAccum * invN * 5.0f));
+
+    const float crestPenalty = juce::jlimit(0.0f, 1.0f, (1.8f - crest) * 1.1f);
+    const float harshPenalty = juce::jlimit(0.0f, 1.0f, highEnergy * 12.0f);
+    const float instantFatigue = juce::jlimit(0.0f, 1.0f, 0.35f * crestPenalty + 0.35f * harshPenalty + 0.30f * repetitionDensity);
+    fatigueEma += (instantFatigue - fatigueEma) * 0.06f;
+    const float fatigueRisk = juce::jlimit(0.0f, 1.0f, fatigueEma);
+
     float score = 100.0f * (0.30f * punch + 0.25f * richness + 0.25f * clarity + 0.20f * width);
     score *= (0.6f + 0.4f * monoSafety);
     score = juce::jlimit(0.0f, 100.0f, score);
 
     m.score = score;
+    m.emphasis = emphasis;
+    m.coherence = coherence;
+    m.synesthesia = synesthesia;
+    m.fatigueRisk = fatigueRisk;
+    m.repetitionDensity = repetitionDensity;
     m.punch = punch;
     m.richness = richness;
     m.clarity = clarity;

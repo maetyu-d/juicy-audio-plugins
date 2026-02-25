@@ -15,7 +15,9 @@ public:
     JuicyPluginEditor(juce::AudioProcessor& processor,
                       juce::AudioProcessorValueTreeState& valueTreeState,
                       MetricsProvider metricsFn,
-                      const juce::String& pluginTitle);
+                      const juce::String& pluginTitle,
+                      bool showGhostStats = false,
+                      bool showTriangleMetrics = false);
 
     void resized() override;
     void paint(juce::Graphics& g) override;

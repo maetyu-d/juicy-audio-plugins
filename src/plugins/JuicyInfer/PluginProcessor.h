@@ -24,11 +24,11 @@ public:
     bool isMidiEffect() const override { return false; }
     double getTailLengthSeconds() const override { return 0.0; }
 
-    int getNumPrograms() override { return 1; }
-    int getCurrentProgram() override { return 0; }
-    void setCurrentProgram(int index) override { juce::ignoreUnused(index); }
-    const juce::String getProgramName(int index) override { juce::ignoreUnused(index); return {}; }
-    void changeProgramName(int index, const juce::String& newName) override { juce::ignoreUnused(index, newName); }
+    int getNumPrograms() override;
+    int getCurrentProgram() override;
+    void setCurrentProgram(int index) override;
+    const juce::String getProgramName(int index) override;
+    void changeProgramName(int index, const juce::String& newName) override;
 
     void getStateInformation(juce::MemoryBlock& destData) override;
     void setStateInformation(const void* data, int sizeInBytes) override;
@@ -41,12 +41,20 @@ private:
     juce::AudioProcessorValueTreeState parameters;
     JuicinessAnalyzer analyzer;
     juce::RangedAudioParameter* juicinessParameter = nullptr;
+    juce::RangedAudioParameter* emphasisParameter = nullptr;
+    juce::RangedAudioParameter* coherenceParameter = nullptr;
+    juce::RangedAudioParameter* synesthesiaParameter = nullptr;
+    juce::RangedAudioParameter* fatigueParameter = nullptr;
+    juce::RangedAudioParameter* repetitionParameter = nullptr;
+    std::atomic<float> latestPreScore { 0.0f };
+    std::atomic<float> latestPostScore { 0.0f };
     std::atomic<float> latestScore { 0.0f };
     std::atomic<float> latestPunch { 0.0f };
     std::atomic<float> latestRichness { 0.0f };
     std::atomic<float> latestClarity { 0.0f };
     std::atomic<float> latestWidth { 0.0f };
     std::atomic<float> latestMonoSafety { 1.0f };
+    int currentProgram = 0;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(JuicyInferAudioProcessor)
 };

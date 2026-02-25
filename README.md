@@ -6,8 +6,12 @@ Plugin suite derived from the "juiciness" report, implemented as four JUCE plugi
 - `JuicyPunch`: transient/sustain shaper for punch and density.
 - `JuicySaturator`: soft saturation tuned for harmonic richness.
 - `JuicyWidth`: stereo widening with Haas delay and mono-safety behavior.
+- `JuicyCohere`: spectral target matching + context-fit management with learn mode.
+- `JuicyTexture`: synesthetic texture engine with material modes and dynamic tails.
+- `JuicyMotion`: micro-variation and repetition-aware contrast management.
 
 Each plugin exposes a `Juiciness Score` parameter so you can monitor inferred juiciness while processing.
+`JuicyInfer` now includes triangle analysis outputs (`Emphasis`, `Coherence`, `Synesthesia`) plus `Fatigue Risk` and `Repetition Density`.
 Each plugin now also uses a custom UI meter panel showing live overall score and feature bars (Punch, Richness, Clarity, Width, Mono Safety).
 
 ## Inference Model (report-derived)

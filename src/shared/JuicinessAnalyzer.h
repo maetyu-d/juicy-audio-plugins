@@ -6,6 +6,13 @@
 struct JuicinessMetrics
 {
     float score = 0.0f;
+    float preScore = 0.0f;
+    float postScore = 0.0f;
+    float emphasis = 0.0f;
+    float coherence = 0.0f;
+    float synesthesia = 0.0f;
+    float fatigueRisk = 0.0f;
+    float repetitionDensity = 0.0f;
     float punch = 0.0f;
     float richness = 0.0f;
     float clarity = 0.0f;
@@ -31,4 +38,7 @@ private:
     float highBandState = 0.0f;
     float lowCoeff = 0.0f;
     float highCoeff = 0.0f;
+    float repetitionEma = 0.0f;
+    float fatigueEma = 0.0f;
+    int onsetCooldown = 0;
 };

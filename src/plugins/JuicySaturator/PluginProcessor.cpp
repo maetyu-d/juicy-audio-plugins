@@ -1,5 +1,27 @@
 #include "PluginProcessor.h"
 #include "../../shared/JuicyPluginEditor.h"
+#include <array>
+
+namespace
+{
+struct SaturatorPreset
+{
+    const char* name;
+    float drive;
+    float asymmetry;
+    float tone;
+    float mix;
+    float output;
+};
+
+constexpr std::array<SaturatorPreset, 5> saturatorPresets { {
+    { "Amber Heat", 6.0f, 0.1f, 0.55f, 1.0f, -3.0f },
+    { "Velvet Burn", 11.0f, 0.2f, 0.4f, 0.85f, -6.0f },
+    { "Mirror Glow", 8.0f, -0.15f, 0.75f, 0.7f, -4.0f },
+    { "Grain Reactor", 18.0f, 0.35f, 0.32f, 1.0f, -10.0f },
+    { "Crystal Edge", 4.0f, -0.05f, 0.9f, 0.55f, -1.0f }
+} };
+}
 
 JuicySaturatorAudioProcessor::JuicySaturatorAudioProcessor()
     : AudioProcessor(BusesProperties().withInput("Input", juce::AudioChannelSet::stereo(), true)
@@ -7,6 +29,7 @@ JuicySaturatorAudioProcessor::JuicySaturatorAudioProcessor()
       parameters(*this, nullptr, "PARAMS", createParameterLayout())
 {
     juicinessParameter = parameters.getParameter("juiciness");
+    setCurrentProgram(0);
 }
 
 void JuicySaturatorAudioProcessor::prepareToPlay(double sampleRate, int samplesPerBlock)
@@ -51,6 +74,7 @@ void JuicySaturatorAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer
     const float mix = *parameters.getRawParameterValue("mix");
     const float outputDb = *parameters.getRawParameterValue("output");
 
+    const auto preMetrics = analyzer.analyze(buffer);
     const float inGain = juce::Decibels::decibelsToGain(driveDb);
     const float outGain = juce::Decibels::decibelsToGain(outputDb);
     const float cutoff = juce::jmap(tone, 0.0f, 1.0f, 2500.0f, 16000.0f);
@@ -74,6 +98,8 @@ void JuicySaturatorAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer
     }
 
     auto metrics = analyzer.analyze(buffer);
+    latestPreScore.store(preMetrics.score, std::memory_order_relaxed);
+    latestPostScore.store(metrics.score, std::memory_order_relaxed);
     latestScore.store(metrics.score, std::memory_order_relaxed);
     latestPunch.store(metrics.punch, std::memory_order_relaxed);
     latestRichness.store(metrics.richness, std::memory_order_relaxed);
@@ -104,9 +130,53 @@ void JuicySaturatorAudioProcessor::setStateInformation(const void* data, int siz
         parameters.replaceState(juce::ValueTree::fromXml(*xmlState));
 }
 
+int JuicySaturatorAudioProcessor::getNumPrograms()
+{
+    return static_cast<int>(saturatorPresets.size());
+}
+
+int JuicySaturatorAudioProcessor::getCurrentProgram()
+{
+    return currentProgram;
+}
+
+void JuicySaturatorAudioProcessor::setCurrentProgram(int index)
+{
+    currentProgram = juce::jlimit(0, getNumPrograms() - 1, index);
+    const auto& p = saturatorPresets[static_cast<size_t>(currentProgram)];
+
+    auto setParam = [this](const char* id, float value)
+    {
+        if (auto* param = parameters.getParameter(id))
+        {
+            const auto range = param->getNormalisableRange();
+            param->setValueNotifyingHost(range.convertTo0to1(value));
+        }
+    };
+
+    setParam("drive", p.drive);
+    setParam("asymmetry", p.asymmetry);
+    setParam("tone", p.tone);
+    setParam("mix", p.mix);
+    setParam("output", p.output);
+}
+
+const juce::String JuicySaturatorAudioProcessor::getProgramName(int index)
+{
+    const int safe = juce::jlimit(0, getNumPrograms() - 1, index);
+    return saturatorPresets[static_cast<size_t>(safe)].name;
+}
+
+void JuicySaturatorAudioProcessor::changeProgramName(int index, const juce::String& newName)
+{
+    juce::ignoreUnused(index, newName);
+}
+
 JuicinessMetrics JuicySaturatorAudioProcessor::getLatestMetrics() const noexcept
 {
     JuicinessMetrics m;
+    m.preScore = latestPreScore.load(std::memory_order_relaxed);
+    m.postScore = latestPostScore.load(std::memory_order_relaxed);
     m.score = latestScore.load(std::memory_order_relaxed);
     m.punch = latestPunch.load(std::memory_order_relaxed);
     m.richness = latestRichness.load(std::memory_order_relaxed);
